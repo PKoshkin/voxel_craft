@@ -1,0 +1,8 @@
+[package]
+name = "voxel_craft"
+version = "0.1.0"
+authors = ["Pavel Koshkin <koshkin.pasha@gmail.com>"]
+
+[dependencies]
+glium="*"
+glutin="*"
