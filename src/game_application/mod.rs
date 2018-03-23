@@ -13,15 +13,13 @@ use std::io::prelude::*;
 mod camera;
 use self::camera::CameraState;
 mod shape_builder;
-use self::shape_builder::{ShapeBuilder, Vertex, Normal, TexCoords};
+use self::shape_builder::{ShapeBuilder, Vertex};
 
 
 pub struct GameApplication {
     events_loop: glutin::EventsLoop,
     display: glium::Display,
-    vertices: glium::VertexBuffer<Vertex>,
-    normals: glium::VertexBuffer<Normal>,
-    tex_coords: glium::VertexBuffer<TexCoords>,
+    shape: glium::VertexBuffer<Vertex>,
     indices: glium::IndexBuffer<u16>,
     texture: glium::texture::SrgbTexture2d,
     normal_map: glium::texture::Texture2d,
@@ -49,17 +47,14 @@ impl GameApplication {
         let display = glium::Display::new(window, context, &events_loop).unwrap();
 
         // shape init
-        let (vertices, normals, tex_coords, indices) = ShapeBuilder::new();
-        let vertices = glium::vertex::VertexBuffer::new(&display, &vertices).unwrap();
-        let normals = glium::vertex::VertexBuffer::new(&display, &normals).unwrap();
-        let tex_coords = glium::vertex::VertexBuffer::new(&display, &tex_coords).unwrap();
+        let (shape, indices) = ShapeBuilder::new();
+        let shape = glium::vertex::VertexBuffer::new(&display, &shape).unwrap();
         let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &indices).unwrap();
 
         let image = image::load(Cursor::new(&include_bytes!("../../images/wood_texture.png")[..]), image::PNG).unwrap().to_rgba();
         let image_dimensions = image.dimensions();
         let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
         let texture = glium::texture::SrgbTexture2d::new(&display, image).unwrap();
-
 
         let image = image::load(Cursor::new(&include_bytes!("../../images/wood_normal_map.png")[..]), image::PNG).unwrap().to_rgba();
         let image_dimensions = image.dimensions();
@@ -72,9 +67,7 @@ impl GameApplication {
         GameApplication{
             events_loop: events_loop,
             display: display,
-            vertices: vertices,
-            normals: normals,
-            tex_coords: tex_coords,
+            shape: shape,
             indices: indices,
             texture: texture,
             normal_map: normal_map,
@@ -113,8 +106,7 @@ impl GameApplication {
 
             let mut target = self.display.draw();
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-            target.draw((&self.vertices, &self.normals, &self.tex_coords),
-                        glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip), &self.program,
+            target.draw(&self.shape, &self.indices, &self.program,
                         &uniform!{model: model, view: view, perspective: perspective, diffuse_tex: &self.texture, normal_tex: &self.normal_map, u_light: light},
                         &params).unwrap();
             target.finish().unwrap();
