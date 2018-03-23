@@ -9,13 +9,15 @@ use std::io::prelude::*;
 mod camera;
 use self::camera::CameraState;
 mod shape_builder;
-use self::shape_builder::{ShapeBuilder, Vertex};
+use self::shape_builder::{ShapeBuilder, Vertex, Normal};
 
 
 pub struct GameApplication {
     events_loop: glutin::EventsLoop,
     display: glium::Display,
-    shape: glium::vertex::VertexBuffer<Vertex>,
+    vertices: glium::VertexBuffer<Vertex>,
+    normals: glium::VertexBuffer<Normal>,
+    indices: glium::IndexBuffer<u16>,
     program: glium::Program
 }
 
@@ -40,7 +42,10 @@ impl GameApplication {
         let display = glium::Display::new(window, context, &events_loop).unwrap();
 
         // shape init
-        let shape = ShapeBuilder::new(&display);
+        let (vertices, normals, indices) = ShapeBuilder::new();
+        let vertices = glium::vertex::VertexBuffer::new(&display, &vertices).unwrap();
+        let normals = glium::vertex::VertexBuffer::new(&display, &normals).unwrap();
+        let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &indices).unwrap();
 
         // shaders init
         let program = init_shaders(&display, &shaders_directory);
@@ -48,7 +53,9 @@ impl GameApplication {
         GameApplication{
             events_loop: events_loop,
             display: display,
-            shape: shape,
+            vertices: vertices,
+            normals: normals,
+            indices: indices,
             program: program
         }
     }
@@ -85,7 +92,7 @@ impl GameApplication {
 
             let mut target = self.display.draw();
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-            target.draw(&self.shape, glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip), &self.program,
+            target.draw((&self.vertices, &self.normals), &self.indices, &self.program,
                         &uniform!{model: model, view: view, perspective: perspective, u_light: light},
                         &params).unwrap();
             target.finish().unwrap();
