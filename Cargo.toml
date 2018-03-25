@@ -7,3 +7,4 @@ authors = ["Pavel Koshkin <koshkin.pasha@gmail.com>"]
 glium="*"
 glutin="*"
 cgmath="*"
+image="*"
