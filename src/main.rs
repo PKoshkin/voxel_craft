@@ -4,7 +4,6 @@ extern crate glium;
 mod game_application;
 use game_application::GameApplication;
 
-
 use std::env;
 
 

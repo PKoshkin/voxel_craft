@@ -1,7 +1,6 @@
 use glium::{self, Surface};
-
-
-extern crate glutin;
+use game_application::glutin;
+use game_application::draw_params::DrawParams;
 
 
 pub struct View {
@@ -19,7 +18,7 @@ impl View {
         }
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&self, draw_params: DrawParams) {
         let mut target = self.display.draw();
         target.clear_color(0.0, 0.0, 0.0, 1.0);
         target.finish().unwrap();

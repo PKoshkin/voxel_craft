@@ -6,3 +6,4 @@ authors = ["Pavel Koshkin <koshkin.pasha@gmail.com>"]
 [dependencies]
 glium="*"
 glutin="*"
+cgmath="*"
