@@ -10,18 +10,29 @@ extern crate image;
 use std::io::Cursor;
 
 
-pub struct View {
+pub struct View<'time> {
     pub camera: Camera,
+    directory: &'time str,
     display: glium::Display,
-    program: glium::Program,
     texture: glium::texture::SrgbTexture2d,
     normal_map: glium::texture::Texture2d
 }
 
 
-fn init_shaders(display: &glium::Display, directory: &str) -> glium::Program {
-    let mut vertex_shader_file = File::open(directory.to_string() + "/src/shaders/shader.vert").unwrap();
-    let mut fragment_shader_file = File::open(directory.to_string() + "/src/shaders/shader.frag").unwrap();
+fn init_textured_triangles_program(display: &glium::Display, directory: &str) -> glium::Program {
+    let mut vertex_shader_file = File::open(directory.to_string() + "/src/shaders/textured_triangles.vert").unwrap();
+    let mut fragment_shader_file = File::open(directory.to_string() + "/src/shaders/textured_triangles.frag").unwrap();
+    let mut vertex_shader_src = String::new();
+    let mut fragment_shader_src = String::new();
+    vertex_shader_file.read_to_string(&mut vertex_shader_src).expect("Failed to read vertex shader file!");
+    fragment_shader_file.read_to_string(&mut fragment_shader_src).expect("Failed to read fragment shader file!");
+    glium::Program::from_source(display, &vertex_shader_src, &fragment_shader_src, None).unwrap()
+}
+
+
+fn init_points_program(display: &glium::Display, directory: &str) -> glium::Program {
+    let mut vertex_shader_file = File::open(directory.to_string() + "/src/shaders/points.vert").unwrap();
+    let mut fragment_shader_file = File::open(directory.to_string() + "/src/shaders/points.frag").unwrap();
     let mut vertex_shader_src = String::new();
     let mut fragment_shader_src = String::new();
     vertex_shader_file.read_to_string(&mut vertex_shader_src).expect("Failed to read vertex shader file!");
@@ -45,14 +56,11 @@ fn init_textures(display: &glium::Display) -> (glium::texture::SrgbTexture2d, gl
 }
 
 
-impl View {
-    pub fn new(events_loop: &glutin::EventsLoop, directory: &str) -> View  {
+impl<'time> View<'time> {
+    pub fn new(events_loop: &glutin::EventsLoop, directory: &'time str) -> View<'time>  {
         let window = glutin::WindowBuilder::new().with_decorations(false).with_fullscreen(Some(events_loop.get_primary_monitor()));
         let context = glutin::ContextBuilder::new().with_depth_buffer(24);
         let display = glium::Display::new(window, context, &events_loop).unwrap();
-
-        // shaders init
-        let program = init_shaders(&display, directory);
 
         // textires init
         let (texture, normal_map) = init_textures(&display);
@@ -62,9 +70,9 @@ impl View {
         let aspect_ratio = width as f32 / height as f32;
         let camera = Camera::new(aspect_ratio, (0.0, 0.0, 0.0), (0.0, 0.0, 1.0));
         View{
-            display: display,
-            program: program,
             camera: camera,
+            directory: directory,
+            display: display,
             texture: texture,
             normal_map: normal_map
         }
@@ -72,8 +80,10 @@ impl View {
 
 
     pub fn draw(&self, draw_params: DrawParams) {
+        let program = init_points_program(&self.display, &self.directory);
         let shape = glium::vertex::VertexBuffer::new(&self.display, &draw_params.shape).unwrap();
         let indices = glium::IndexBuffer::new(&self.display, glium::index::PrimitiveType::TrianglesList, &draw_params.indices).unwrap();
+        let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
         let params = glium::DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,
@@ -94,8 +104,8 @@ impl View {
             [0.0, 0.0, 2.0, 1.0f32]
         ];
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-        target.draw(&shape, &indices, &self.program,
-                    &uniform!{model: model, view: view, perspective: perspective, diffuse_tex: &self.texture, normal_tex: &self.normal_map, u_light: light},
+        target.draw(&shape, &indices, &program,
+                    &uniform!{model: model, view: view, perspective: perspective},
                     &params).unwrap();
         target.finish().unwrap();
     }

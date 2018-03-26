@@ -9,10 +9,14 @@ pub struct Model {
 
 impl Model {
     pub fn new() -> Model {
-        let map = Map::new();
+        let map = Map::new(0.1, (10, 10, 10));
         Model{
             map: map
         }
+    }
+
+    pub fn update(&mut self) {
+        self.map.build_voxels();
     }
 
     pub fn get_draw_params(&self) -> DrawParams {
