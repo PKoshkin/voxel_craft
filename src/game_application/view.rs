@@ -31,7 +31,7 @@ fn init_shaders(display: &glium::Display, directory: &str) -> glium::Program {
 
 
 fn init_textures(display: &glium::Display) -> (glium::texture::SrgbTexture2d, glium::texture::Texture2d) {
-    let image = image::load(Cursor::new(&include_bytes!("../../images/grass_texture.jpg")[..]), image::PNG).unwrap().to_rgba();
+    let image = image::load(Cursor::new(&include_bytes!("../../images/grass_texture.jpg")[..]), image::JPEG).unwrap().to_rgba();
     let image_dimensions = image.dimensions();
     let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
     let texture = glium::texture::SrgbTexture2d::new(display, image).unwrap();
@@ -47,25 +47,20 @@ fn init_textures(display: &glium::Display) -> (glium::texture::SrgbTexture2d, gl
 
 impl View {
     pub fn new(events_loop: &glutin::EventsLoop, directory: &str) -> View  {
-        println!("ECHO 1");
         let window = glutin::WindowBuilder::new().with_decorations(false).with_fullscreen(Some(events_loop.get_primary_monitor()));
         let context = glutin::ContextBuilder::new().with_depth_buffer(24);
         let display = glium::Display::new(window, context, &events_loop).unwrap();
-        println!("ECHO 2");
 
         // shaders init
         let program = init_shaders(&display, directory);
-        println!("ECHO 3");
 
         // textires init
         let (texture, normal_map) = init_textures(&display);
-        println!("ECHO 4");
 
         // camera init
         let (width, height) = display.get_framebuffer_dimensions();
         let aspect_ratio = width as f32 / height as f32;
         let camera = Camera::new(aspect_ratio, (0.0, 0.0, 0.0), (0.0, 0.0, 1.0));
-        println!("ECHO 1");
         View{
             display: display,
             program: program,
