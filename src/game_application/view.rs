@@ -80,10 +80,13 @@ impl<'time> View<'time> {
 
 
     pub fn draw(&self, draw_params: DrawParams) {
-        let program = init_points_program(&self.display, &self.directory);
+        //let program = init_points_program(&self.display, &self.directory);
+        let program = init_textured_triangles_program(&self.display, &self.directory);
         let shape = glium::vertex::VertexBuffer::new(&self.display, &draw_params.shape).unwrap();
-        let indices = glium::IndexBuffer::new(&self.display, glium::index::PrimitiveType::TrianglesList, &draw_params.indices).unwrap();
-        let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
+        //let indices = glium::IndexBuffer::new(&self.display, glium::index::PrimitiveType::TrianglesList, &draw_params.indices).unwrap();
+        //let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
+        let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+
         let params = glium::DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,
@@ -96,16 +99,21 @@ impl<'time> View<'time> {
         let mut target = self.display.draw();
         let view = self.camera.get_view();
         let perspective = self.camera.get_perspective();
-        let light = [1.4, 0.4, -0.7f32];
+        let light = [0.0, 0.0, 0.0f32];
         let model = [
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 2.0, 1.0f32]
+            [0.0, 0.0, 0.0, 1.0f32]
         ];
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
+        /*
         target.draw(&shape, &indices, &program,
                     &uniform!{model: model, view: view, perspective: perspective},
+                    &params).unwrap();
+        */
+        target.draw(&shape, &indices, &program,
+                    &uniform!{model: model, view: view, perspective: perspective, diffuse_tex: &self.texture, normal_tex: &self.normal_map, u_light: light},
                     &params).unwrap();
         target.finish().unwrap();
     }

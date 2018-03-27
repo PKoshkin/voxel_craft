@@ -22,7 +22,7 @@ impl Model {
     pub fn get_draw_params(&self) -> DrawParams {
         let mut shape = Vec::new();
         let mut indices = Vec::new();
-        self.map.add_vertices(&mut shape, &mut indices);
+        self.map.add_vertices(&mut shape);
         DrawParams{
             shape: shape,
             indices: indices,
