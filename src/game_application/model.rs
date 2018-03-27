@@ -8,24 +8,18 @@ pub struct Model {
 
 
 impl Model {
-    pub fn new() -> Model {
-        let map = Map::new(0.1, (10, 10, 10));
+    pub fn new(camera_position: (f32, f32, f32)) -> Model {
+        let mut map = Map::new(0.1, (10, 10, 10), camera_position);
+        map.build_voxels();
         Model{
             map: map
         }
     }
 
-    pub fn update(&mut self) {
-        self.map.build_voxels();
-    }
-
-    pub fn get_draw_params(&self) -> DrawParams {
-        let mut shape = Vec::new();
-        let mut indices = Vec::new();
-        self.map.add_vertices(&mut shape);
+    pub fn get_draw_params(&mut self, camera_position: (f32, f32, f32)) -> DrawParams {
+        let shape = self.map.get_vertices(camera_position);
         DrawParams{
             shape: shape,
-            indices: indices,
             uniforms: UniformsStruct{}
         }
     }

@@ -1,19 +1,17 @@
 use game_application::vertex::Vertex;
 use game_application::cgmath::{Point3, Vector3, dot, ElementWise};
 use std::collections::{HashSet, HashMap};
-use std::cmp::Ordering;
 
 
 pub struct Map {
     voxel_size: f32,
     map_size: (usize, usize, usize),
-    voxels: Vec<Vec<Vec<bool>>> 
+    voxels: Vec<Vec<Vec<bool>>>,
+    position: (f32, f32, f32),
+    vertices: Vec<Vertex>
 }
 
-
-fn length(vector: Vector3<f32>) -> f32 {
-    dot(vector, vector).sqrt()
-}
+type Edge = (Point3<usize>, Point3<usize>);
 
 
 fn normalize(vector: &mut Vector3<f32>) {
@@ -23,13 +21,13 @@ fn normalize(vector: &mut Vector3<f32>) {
 
 
 impl Map {
-    pub fn new(voxel_size: f32, map_size: (usize, usize, usize)) -> Map {
+    pub fn new(voxel_size: f32, map_size: (usize, usize, usize), camera_position: (f32, f32, f32)) -> Map {
         let mut voxels = Vec::new();
         for x in 0..map_size.0 {
             voxels.push(Vec::new());
             for y in 0..map_size.1 {
                 voxels[x].push(Vec::new());
-                for z in 0..map_size.2 {
+                for _ in 0..map_size.2 {
                     voxels[x][y].push(false);
                 }
             }
@@ -37,7 +35,9 @@ impl Map {
         Map {
             voxel_size: voxel_size,
             map_size: map_size,
-            voxels: voxels
+            voxels: voxels,
+            position: camera_position,
+            vertices: Vec::new()
         }
     }
 
@@ -70,8 +70,8 @@ impl Map {
          (point.z < self.map_size.2 as i32))
     }
 
-    fn get_neighbors(&self, point: &Point3<usize>) -> Vec<Point3<usize>> {
-        let mut result = Vec::new();
+    fn get_neighbors(&self, point: &Point3<usize>) -> HashSet<Point3<usize>> {
+        let mut result = HashSet::new();
         for dx in -1..2 {
             for dy in -1..2 {
                 for dz in -1..2 {
@@ -82,7 +82,7 @@ impl Map {
                     if self.is_in_map(&neighbor) {
                         let neighbor = neighbor.cast::<usize>().unwrap();
                         if self.voxels[neighbor.x][neighbor.y][neighbor.z] {
-                            result.push(neighbor);
+                            result.insert(neighbor);
                         }
                     }
                 }
@@ -134,50 +134,80 @@ impl Map {
         }
     }
 
-    pub fn add_vertices(&self, shape: &mut Vec<Vertex>) {
-        let external_normals = self.get_external_normals();
-        let mut visited = HashSet::new();
-        for (voxel, voxel_normal) in external_normals.iter() {
-            if visited.contains(voxel) {
+    fn edge_neighbors(&self, edge: Edge) -> HashSet<Point3<usize>> {
+        let first_neighbors = self.get_neighbors(&edge.0);
+        let second_neighbors = self.get_neighbors(&edge.1);
+        first_neighbors.intersection(&second_neighbors).cloned().collect()
+    }
+
+    fn extend_edge(&self, shape: &mut Vec<Vertex>, edge: Edge, visited_edges: &HashSet<Edge>, external_normals: &HashMap<Point3<usize>, Vector3<f32>>) -> Option<Edge> {
+        let neighbors = self.edge_neighbors(edge);
+        let mut have_next = false;
+        let mut result = (Point3::new(0, 0, 0), Point3::new(0, 0, 0));
+        for neighbor in &neighbors {
+            if !external_normals.contains_key(neighbor) {
                 continue;
             }
-
-            let mut neighbors = self.get_neighbors(voxel);
-            for neighbor in &neighbors {
-                visited.insert(neighbor.clone());
-            }
-            let normal_to_plane = voxel_normal.cross(neighbors[0].cast::<f32>().unwrap() - voxel.cast::<f32>().unwrap());
-
-            neighbors.sort_by(|point1, point2| {
-                let a = normal_to_plane;
-                let b1 = point1.cast::<f32>().unwrap() - voxel.cast::<f32>().unwrap();
-                let sin1 = dot(a, b1) / (length(a) * length(b1));
-                let b2 = point2.cast::<f32>().unwrap() - voxel.cast::<f32>().unwrap();
-                let sin2 = dot(a, b2) / (length(a) * length(b2));
-                if sin1.asin() < sin2.asin() {
-                    return Ordering::Less;
-                }  else {
-                    return Ordering::Greater;
+            if !have_next {
+                if !visited_edges.contains(&(edge.0, *neighbor)) {
+                    result.0 = edge.0;
+                    result.1 = *neighbor;
+                    have_next = true;
                 }
-            });
-            for i in 1..neighbors.len() {
-                shape.push(Vertex{
-                    position: [(voxel.x as f32) * self.voxel_size, (voxel.z as f32) * self.voxel_size, (voxel.y as f32) * self.voxel_size],
-                    normal: [voxel_normal.x, voxel_normal.y, voxel_normal.z],
-                    tex_coords: [0.0, 1.0]
-                });
-                shape.push(Vertex{
-                    position: [(neighbors[i - 1].x as f32) * self.voxel_size, (neighbors[i - 1].z as f32) * self.voxel_size, (neighbors[i - 1].y as f32) * self.voxel_size],
-                    normal: [voxel_normal.x, voxel_normal.y, voxel_normal.z],
-                    tex_coords: [1.0, 1.0]
-                });
-                shape.push(Vertex{
-                    position: [(neighbors[i].x as f32) * self.voxel_size, (neighbors[i].z as f32) * self.voxel_size, (neighbors[i].y as f32) * self.voxel_size],
-                    normal: [voxel_normal.x, voxel_normal.y, voxel_normal.z],
-                    tex_coords: [0.0, 0.0]
-                });
+                if !visited_edges.contains(&(edge.1, *neighbor)) {
+                    result.0 = edge.1;
+                    result.1 = *neighbor;
+                    have_next = true;
+                }
             }
-            visited.insert(voxel.clone());
+            shape.push(Vertex{
+                position: [(edge.0.x as f32) * self.voxel_size, (edge.0.z as f32) * self.voxel_size, (edge.0.y as f32) * self.voxel_size],
+                normal: [external_normals[&edge.0].x, external_normals[&edge.0].z, external_normals[&edge.0].y],
+                tex_coords: [0.0, 1.0]
+            });
+            shape.push(Vertex{
+                position: [(edge.1.x as f32) * self.voxel_size, (edge.1.z as f32) * self.voxel_size, (edge.1.y as f32) * self.voxel_size],
+                normal: [external_normals[&edge.1].x, external_normals[&edge.1].z, external_normals[&edge.1].y],
+                tex_coords: [1.0, 1.0]
+            });
+            shape.push(Vertex{
+                position: [(neighbor.x as f32) * self.voxel_size, (neighbor.z as f32) * self.voxel_size, (neighbor.y as f32) * self.voxel_size],
+                normal: [external_normals[neighbor].x, external_normals[neighbor].z, external_normals[neighbor].y],
+                tex_coords: [0.0, 0.0]
+            });
+        }
+        if have_next {
+            return Some(result);
+        } else {
+            return None;
+        }
+    }
+
+    fn need_to_redraw(&self, position: (f32, f32, f32)) -> bool {
+        self.vertices.len() == 0
+    }
+
+    pub fn get_vertices(&mut self, camera_position: (f32, f32, f32)) -> Vec<Vertex> {
+        if self.need_to_redraw(camera_position) {
+            let external_normals = self.get_external_normals();
+            let mut visited_edges = HashSet::new();
+            let mut edge = (Point3::new(0, 0, 0), Point3::new(0, 1, 0));
+            visited_edges.insert(edge);
+
+            let mut shape = Vec::new();
+            loop {
+                match self.extend_edge(&mut shape, edge, &visited_edges, &external_normals) {
+                    Some(new_edge) => {
+                        edge = new_edge;
+                        visited_edges.insert(edge);
+                    },
+                    None => break
+                }
+            }
+            self.vertices = shape.clone();
+            return shape;
+        } else {
+            return self.vertices.clone();
         }
     }
 }

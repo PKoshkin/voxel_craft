@@ -37,9 +37,10 @@ impl<'time> GameApplication<'time> {
     }
 
     pub fn start_loop(&mut self) {
+        let camera_position = (0.0, 0.0, 0.0);
         let mut events_loop = glutin::EventsLoop::new();
-        let mut view = View::new(&events_loop, self.directory);
-        let mut model = Model::new();
+        let mut view = View::new(&events_loop, self.directory, camera_position);
+        let mut model = Model::new(camera_position);
 
         let mut closed = false;
         while !closed {
@@ -50,8 +51,7 @@ impl<'time> GameApplication<'time> {
                 }
             });
             view.camera.update();
-            model.update();
-            let draw_params = model.get_draw_params();
+            let draw_params = model.get_draw_params(view.camera.position);
             view.draw(draw_params);
         }
     }

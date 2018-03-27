@@ -2,8 +2,8 @@ use game_application::glutin;
 
 
 pub struct Camera {
+    pub position: (f32, f32, f32),
     aspect_ratio: f32,
-    position: (f32, f32, f32),
     direction: (f32, f32, f32),
 
     moving_up: bool,
@@ -18,8 +18,8 @@ pub struct Camera {
 impl Camera {
     pub fn new(aspect_ratio: f32, position: (f32, f32, f32), direction: (f32, f32, f32)) -> Camera {
         Camera {
-            aspect_ratio: aspect_ratio,
             position: position,
+            aspect_ratio: aspect_ratio,
             direction: direction,
             moving_up: false,
             moving_left: false,
