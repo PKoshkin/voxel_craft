@@ -9,7 +9,7 @@ pub struct Model {
 
 impl Model {
     pub fn new(camera_position: (f32, f32, f32)) -> Model {
-        let mut map = Map::new(0.01, 513, camera_position);
+        let mut map = Map::new(0.01, 257, camera_position);
         map.build_voxels();
         Model{
             map: map
