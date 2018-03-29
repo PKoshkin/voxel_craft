@@ -11,6 +11,8 @@ mod draw_params;
 mod vertex;
 mod map;
 mod camera;
+mod marching_cubes;
+mod geometry;
 
 
 pub struct GameApplication<'time> {
