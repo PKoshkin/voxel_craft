@@ -21,7 +21,8 @@ pub struct View<'time> {
 
 fn init_textured_triangles_program(display: &glium::Display, directory: &str) -> glium::Program {
     let mut vertex_shader_file = File::open(directory.to_string() + "/src/shaders/textured_triangles.vert").unwrap();
-    let mut fragment_shader_file = File::open(directory.to_string() + "/src/shaders/textured_triangles.frag").unwrap();
+    //let mut fragment_shader_file = File::open(directory.to_string() + "/src/shaders/textured_triangles.frag").unwrap();
+    let mut fragment_shader_file = File::open(directory.to_string() + "/src/shaders/green_color.frag").unwrap();
     let mut vertex_shader_src = String::new();
     let mut fragment_shader_src = String::new();
     vertex_shader_file.read_to_string(&mut vertex_shader_src).expect("Failed to read vertex shader file!");
@@ -99,7 +100,7 @@ impl<'time> View<'time> {
         let mut target = self.display.draw();
         let view = self.camera.get_view();
         let perspective = self.camera.get_perspective();
-        let light = [0.0, 0.0, 0.0f32];
+        let light = [0.5, 0.5, 0.5f32];
         let model = [
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],

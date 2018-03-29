@@ -1,5 +1,6 @@
 extern crate glutin;
 extern crate cgmath;
+extern crate rand;
 
 mod view;
 use self::view::View;
@@ -12,6 +13,7 @@ mod vertex;
 mod map;
 mod camera;
 mod marching_cubes;
+mod diamond_square;
 mod geometry;
 
 

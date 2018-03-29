@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Pavel Koshkin <koshkin.pasha@gmail.com>"]
 
 [dependencies]
+rand="*"
 glium="*"
 glutin="*"
 cgmath="*"

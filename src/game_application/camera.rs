@@ -33,7 +33,7 @@ impl Camera {
     pub fn get_perspective(&self) -> [[f32; 4]; 4] {
         let fov: f32 = 3.141592 / 3.0;
         let zfar = 1024.0;
-        let znear = 0.1;
+        let znear = 0.001;
 
         let f = 1.0 / (fov / 2.0).tan();
 
