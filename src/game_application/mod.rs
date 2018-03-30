@@ -55,7 +55,7 @@ impl<'time> GameApplication<'time> {
                 }
             });
             view.camera.update();
-            let draw_params = model.get_draw_params(view.camera.position);
+            let draw_params = model.get_draw_params((view.camera.position.x, view.camera.position.y, view.camera.position.z));
             view.draw(draw_params);
         }
     }

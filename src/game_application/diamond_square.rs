@@ -1,11 +1,17 @@
 use game_application::rand::{Rng, thread_rng};
 
+
+fn get_delta(random: f64, roughness: f64, square_size: usize) -> f64 {
+    (random * 2.0 - 1.0) * (square_size as f64) * (square_size as f64) * roughness
+}
+
+
 pub fn generate_hight_map(size: usize) -> Vec<Vec<usize>> {
     let mut rng = thread_rng();
     let mut result = Vec::with_capacity(size);
     for i in 0..size {
         result.push(Vec::with_capacity(size));
-        for j in 0..size {
+        for _ in 0..size {
             result[i].push((size as f64) / 2.0);
         }
     }
@@ -26,7 +32,7 @@ pub fn generate_hight_map(size: usize) -> Vec<Vec<usize>> {
                     result[x + square_size][y] +
                     result[x + square_size][y + square_size] +
                     result[x][y + square_size]
-                ) / 4.0 + (random * 2.0 - 1.0) * (square_size as f64) * (square_size as f64) * roughness;
+                ) / 4.0 + get_delta(random, roughness, square_size);
                 y += square_size;
             }
             x += square_size;
@@ -48,8 +54,7 @@ pub fn generate_hight_map(size: usize) -> Vec<Vec<usize>> {
                     result[x][y] += result[x][y + middle];
                     counter += 1;
                 }
-                result[x][y] = result[x][y] / (counter as f64);
-                result[x][y] += (random * 2.0 - 1.0) * (square_size as f64) * (square_size as f64) * roughness;
+                result[x][y] = result[x][y] / (counter as f64) + get_delta(random, roughness, square_size);
                 y += square_size;
             }
             x += square_size;
@@ -70,8 +75,7 @@ pub fn generate_hight_map(size: usize) -> Vec<Vec<usize>> {
                     result[x][y] += result[x + middle][y];
                     counter += 1;
                 }
-                result[x][y] = result[x][y] / (counter as f64);
-                result[x][y] += (random * 2.0 - 1.0) * (square_size as f64) * (square_size as f64) * roughness;
+                result[x][y] = result[x][y] / (counter as f64) + get_delta(random, roughness, square_size);
                 x += square_size;
             }
             y += square_size;

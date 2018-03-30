@@ -1,10 +1,19 @@
 use game_application::glutin;
+use game_application::cgmath::{Vector3, Point3};
+use game_application::geometry::get_normalized;
 
 
 pub struct Camera {
-    pub position: (f32, f32, f32),
+    pub position: Point3<f32>,
     aspect_ratio: f32,
-    direction: (f32, f32, f32),
+    forward_direction: Vector3<f32>,
+    up_direction: Vector3<f32>,
+
+    cursor_position: (f32, f32),
+    know_cursor: bool,
+
+    move_speed: f32,
+    rotate_speed: f32,
 
     moving_up: bool,
     moving_left: bool,
@@ -12,21 +21,37 @@ pub struct Camera {
     moving_right: bool,
     moving_forward: bool,
     moving_backward: bool,
+    rotate_clockwise: bool,
+    rotate_counterclockwise: bool,
+
+    cursor_move: (f32, f32)
 }
 
 
 impl Camera {
     pub fn new(aspect_ratio: f32, position: (f32, f32, f32), direction: (f32, f32, f32)) -> Camera {
         Camera {
-            position: position,
+            position: Point3::new(position.0, position.1, position.2),
             aspect_ratio: aspect_ratio,
-            direction: direction,
+            forward_direction: Vector3::new(direction.0, direction.1, direction.2),
+            up_direction: Vector3::new(0.0, 1.0, 0.0),
+
+            cursor_position: (0.0, 0.0),
+            know_cursor: false,
+
+            move_speed: 0.01,
+            rotate_speed: 0.01,
+
             moving_up: false,
             moving_left: false,
             moving_down: false,
             moving_right: false,
             moving_forward: false,
-            moving_backward: false
+            moving_backward: false,
+            rotate_clockwise: false,
+            rotate_counterclockwise: false,
+
+            cursor_move: (0.0, 0.0)
         }
     }
 
@@ -47,121 +72,87 @@ impl Camera {
     }
 
     pub fn get_view(&self) -> [[f32; 4]; 4] {
-        let f = {
-            let f = self.direction;
-            let len = f.0 * f.0 + f.1 * f.1 + f.2 * f.2;
-            let len = len.sqrt();
-            (f.0 / len, f.1 / len, f.2 / len)
-        };
-
-        let up = (0.0, 1.0, 0.0);
-
-        let s = (f.1 * up.2 - f.2 * up.1,
-                 f.2 * up.0 - f.0 * up.2,
-                 f.0 * up.1 - f.1 * up.0);
-
-        let s_norm = {
-            let len = s.0 * s.0 + s.1 * s.1 + s.2 * s.2;
-            let len = len.sqrt();
-            (s.0 / len, s.1 / len, s.2 / len)
-        };
-
-        let u = (s_norm.1 * f.2 - s_norm.2 * f.1,
-                 s_norm.2 * f.0 - s_norm.0 * f.2,
-                 s_norm.0 * f.1 - s_norm.1 * f.0);
-
-        let p = (-self.position.0 * s.0 - self.position.1 * s.1 - self.position.2 * s.2,
-                 -self.position.0 * u.0 - self.position.1 * u.1 - self.position.2 * u.2,
-                 -self.position.0 * f.0 - self.position.1 * f.1 - self.position.2 * f.2);
+        let right_direction = self.forward_direction.cross(self.up_direction);
+        let p = (-self.position.x * right_direction.x - self.position.y * right_direction.y - self.position.z * right_direction.z,
+                 -self.position.x * self.up_direction.x - self.position.y * self.up_direction.y - self.position.z * self.up_direction.z,
+                 -self.position.x * self.forward_direction.x - self.position.y * self.forward_direction.y - self.position.z * self.forward_direction.z);
 
         // note: remember that this is column-major, so the lines of code are actually columns
         [
-            [s_norm.0, u.0, f.0, 0.0],
-            [s_norm.1, u.1, f.1, 0.0],
-            [s_norm.2, u.2, f.2, 0.0],
-            [p.0, p.1,  p.2, 1.0],
+            [right_direction.x, self.up_direction.x, self.forward_direction.x, 0.0],
+            [right_direction.y, self.up_direction.y, self.forward_direction.y, 0.0],
+            [right_direction.z, self.up_direction.z, self.forward_direction.z, 0.0],
+            [              p.0,                 p.1,                      p.2, 1.0],
         ]
     }
 
     pub fn update(&mut self) {
-        let f = {
-            let f = self.direction;
-            let len = f.0 * f.0 + f.1 * f.1 + f.2 * f.2;
-            let len = len.sqrt();
-            (f.0 / len, f.1 / len, f.2 / len)
-        };
-
-        let up = (0.0, 1.0, 0.0);
-
-        let s = (f.1 * up.2 - f.2 * up.1,
-                 f.2 * up.0 - f.0 * up.2,
-                 f.0 * up.1 - f.1 * up.0);
-
-        let s = {
-            let len = s.0 * s.0 + s.1 * s.1 + s.2 * s.2;
-            let len = len.sqrt();
-            (s.0 / len, s.1 / len, s.2 / len)
-        };
-
-        let u = (s.1 * f.2 - s.2 * f.1,
-                 s.2 * f.0 - s.0 * f.2,
-                 s.0 * f.1 - s.1 * f.0);
+        let mut right_direction = self.forward_direction.cross(self.up_direction);
 
         if self.moving_up {
-            self.position.0 += u.0 * 0.01;
-            self.position.1 += u.1 * 0.01;
-            self.position.2 += u.2 * 0.01;
+            self.position += self.move_speed * self.up_direction;
         }
-
-        if self.moving_left {
-            self.position.0 -= s.0 * 0.01;
-            self.position.1 -= s.1 * 0.01;
-            self.position.2 -= s.2 * 0.01;
-        }
-
         if self.moving_down {
-            self.position.0 -= u.0 * 0.01;
-            self.position.1 -= u.1 * 0.01;
-            self.position.2 -= u.2 * 0.01;
+            self.position -= self.move_speed * self.up_direction;
         }
-
+        if self.moving_left {
+            self.position -= self.move_speed * right_direction;
+        }
         if self.moving_right {
-            self.position.0 += s.0 * 0.01;
-            self.position.1 += s.1 * 0.01;
-            self.position.2 += s.2 * 0.01;
+            self.position += self.move_speed * right_direction;
         }
-
         if self.moving_forward {
-            self.position.0 += f.0 * 0.01;
-            self.position.1 += f.1 * 0.01;
-            self.position.2 += f.2 * 0.01;
+            self.position += self.move_speed * self.forward_direction;
+        }
+        if self.moving_backward {
+            self.position -= self.move_speed * self.forward_direction;
         }
 
-        if self.moving_backward {
-            self.position.0 -= f.0 * 0.01;
-            self.position.1 -= f.1 * 0.01;
-            self.position.2 -= f.2 * 0.01;
+        if self.know_cursor {
+            self.forward_direction += self.rotate_speed * self.cursor_move.0 * right_direction;
+            self.forward_direction -= self.rotate_speed * self.cursor_move.1 * self.up_direction;
+            self.forward_direction = get_normalized(self.forward_direction);
+            self.up_direction = right_direction.cross(self.forward_direction);
         }
+
+        right_direction = self.forward_direction.cross(self.up_direction);
+        if self.rotate_clockwise {
+            self.up_direction += self.rotate_speed * right_direction;
+            self.up_direction = get_normalized(self.up_direction);
+        }
+        if self.rotate_counterclockwise {
+            self.up_direction -= self.rotate_speed * right_direction;
+            self.up_direction = get_normalized(self.up_direction);
+        }
+
+        self.cursor_move = (0.0, 0.0);
     }
 
     pub fn handle_event(&mut self, event: &glutin::WindowEvent) {
-        let input = match *event {
-            glutin::WindowEvent::KeyboardInput { input, .. } => input,
-            _ => return,
-        };
-        let pressed = input.state == glutin::ElementState::Pressed;
-        let key = match input.virtual_keycode {
-            Some(key) => key,
-            None => return,
-        };
-        match key {
-            glutin::VirtualKeyCode::Up => self.moving_up = pressed,
-            glutin::VirtualKeyCode::Down => self.moving_down = pressed,
-            glutin::VirtualKeyCode::A => self.moving_left = pressed,
-            glutin::VirtualKeyCode::D => self.moving_right = pressed,
-            glutin::VirtualKeyCode::W => self.moving_forward = pressed,
-            glutin::VirtualKeyCode::S => self.moving_backward = pressed,
-            _ => (),
-        };
+        if let glutin::WindowEvent::CursorMoved{position, ..} = *event {
+            if self.know_cursor {
+                self.cursor_move = (position.0 as f32 - self.cursor_position.0, position.1 as f32 - self.cursor_position.1);
+            } else {
+                self.know_cursor = true;
+            }
+            self.cursor_position.0 = position.0 as f32;
+            self.cursor_position.1 = position.1 as f32;
+        }
+        if let glutin::WindowEvent::KeyboardInput{input, ..} = *event {
+            let pressed = input.state == glutin::ElementState::Pressed;
+            if let Some(key) = input.virtual_keycode {
+                match key {
+                    glutin::VirtualKeyCode::Space => self.moving_up = pressed,
+                    glutin::VirtualKeyCode::LShift => self.moving_down = pressed,
+                    glutin::VirtualKeyCode::A => self.moving_left = pressed,
+                    glutin::VirtualKeyCode::D => self.moving_right = pressed,
+                    glutin::VirtualKeyCode::W => self.moving_forward = pressed,
+                    glutin::VirtualKeyCode::S => self.moving_backward = pressed,
+                    glutin::VirtualKeyCode::Q => self.rotate_counterclockwise = pressed,
+                    glutin::VirtualKeyCode::E => self.rotate_clockwise = pressed,
+                    _ => (),
+                };
+            }
+        }
     }
 }
