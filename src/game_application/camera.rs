@@ -108,14 +108,6 @@ impl Camera {
             self.position -= self.move_speed * self.forward_direction;
         }
 
-        if self.know_cursor {
-            self.forward_direction += self.rotate_speed * self.cursor_move.0 * right_direction;
-            self.forward_direction -= self.rotate_speed * self.cursor_move.1 * self.up_direction;
-            self.forward_direction = get_normalized(self.forward_direction);
-            self.up_direction = right_direction.cross(self.forward_direction);
-        }
-
-        right_direction = self.forward_direction.cross(self.up_direction);
         if self.rotate_clockwise {
             self.up_direction += self.rotate_speed * right_direction;
             self.up_direction = get_normalized(self.up_direction);
@@ -123,6 +115,14 @@ impl Camera {
         if self.rotate_counterclockwise {
             self.up_direction -= self.rotate_speed * right_direction;
             self.up_direction = get_normalized(self.up_direction);
+        }
+
+        right_direction = self.forward_direction.cross(self.up_direction);
+        if self.know_cursor {
+            self.forward_direction += self.rotate_speed * self.cursor_move.0 * right_direction;
+            self.forward_direction -= self.rotate_speed * self.cursor_move.1 * self.up_direction;
+            self.forward_direction = get_normalized(self.forward_direction);
+            self.up_direction = get_normalized(right_direction.cross(self.forward_direction));
         }
 
         self.cursor_move = (0.0, 0.0);
