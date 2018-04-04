@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use game_application::cgmath::{Vector3, Point3};
 use game_application::vertex::Vertex;
 use game_application::geometry::normalize;
+use game_application::mesh::Mesh;
 
 
 const TRIANGLE_TABLE: [[i32; 16]; 256] = [
@@ -283,7 +284,8 @@ const COORDS_ADDITIONS: [(usize, usize, usize); 12] = [
 pub fn process_cube(voxels: &Vec<Vec<Vec<bool>>>,
                     x: usize, y: usize, z: usize,
                     positions: &mut Vec<Point3<usize>>,
-                    normals: &mut HashMap<Point3<usize>, Vector3<f32>>) {
+                    normals: &mut HashMap<Point3<usize>, Vector3<f32>>,
+                    mesh: &mut Mesh) {
     let mut cube_index = 0;
     if voxels[x][y][z] {cube_index |= 1;}
     if voxels[x + 1][y][z] {cube_index |= 2;}
@@ -304,6 +306,7 @@ pub fn process_cube(voxels: &Vec<Vec<Vec<bool>>>,
                                        2 * y + COORDS_ADDITIONS[addition_index].1,
                                        2 * z + COORDS_ADDITIONS[addition_index].2));
         }
+        mesh.add_triangle(&positions[(positions.len() - 3)..positions.len()]);
         let position1 = positions[positions.len() - 1].cast::<f32>().unwrap();
         let position2 = positions[positions.len() - 2].cast::<f32>().unwrap();
         let position3 = positions[positions.len() - 3].cast::<f32>().unwrap();
@@ -327,14 +330,16 @@ pub fn process_cube(voxels: &Vec<Vec<Vec<bool>>>,
 pub fn get_vertices(voxels: &Vec<Vec<Vec<bool>>>, voxel_size: f32) -> Vec<Vertex> {
     let mut positions = Vec::new();
     let mut normals = HashMap::new();
+    let mut mesh = Mesh::new();
     let (x_size, y_size, z_size) = (voxels.len(), voxels[0].len(), voxels[0][0].len());
     for x in 0..(x_size - 1) {
         for y in 0..(y_size - 1) {
             for z in 0..(z_size - 1) {
-                process_cube(&voxels, x, y, z, &mut positions, &mut normals);
+                process_cube(&voxels, x, y, z, &mut positions, &mut normals, &mut mesh);
             }
         }
     }
+
     let mut shape = Vec::new();
     for (i, position) in positions.iter().enumerate() {
         let mut normal = normals.get_mut(position).unwrap();

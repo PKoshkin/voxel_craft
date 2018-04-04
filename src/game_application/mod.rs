@@ -15,6 +15,7 @@ mod camera;
 mod marching_cubes;
 mod diamond_square;
 mod geometry;
+mod mesh;
 
 
 pub struct GameApplication<'time> {
