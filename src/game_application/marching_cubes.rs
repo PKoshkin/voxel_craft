@@ -283,8 +283,6 @@ const COORDS_ADDITIONS: [(usize, usize, usize); 12] = [
 
 pub fn process_cube(voxels: &Vec<Vec<Vec<bool>>>,
                     x: usize, y: usize, z: usize,
-                    positions: &mut Vec<Point3<usize>>,
-                    normals: &mut HashMap<Point3<usize>, Vector3<f32>>,
                     mesh: &mut Mesh) {
     let mut cube_index = 0;
     if voxels[x][y][z] {cube_index |= 1;}
@@ -300,56 +298,28 @@ pub fn process_cube(voxels: &Vec<Vec<Vec<bool>>>,
     }
     let mut index = 0;
     while TRIANGLE_TABLE[cube_index][index] != -1 {
+        let mut positions = Vec::new();
         for i in 0..3 {
             let addition_index = TRIANGLE_TABLE[cube_index][index + i] as usize;
             positions.push(Point3::new(2 * x + COORDS_ADDITIONS[addition_index].0,
                                        2 * y + COORDS_ADDITIONS[addition_index].1,
                                        2 * z + COORDS_ADDITIONS[addition_index].2));
         }
-        mesh.add_triangle(&positions[(positions.len() - 3)..positions.len()]);
-        let position1 = positions[positions.len() - 1].cast::<f32>().unwrap();
-        let position2 = positions[positions.len() - 2].cast::<f32>().unwrap();
-        let position3 = positions[positions.len() - 3].cast::<f32>().unwrap();
-        let mut current_normal = (position2 - position1).cross(position3 - position1);
-        normalize(&mut current_normal);
-        for i in 1..4 {
-            let mut ok = false;
-            if let Some(normal) = normals.get_mut(&positions[positions.len() - i]) {
-                *normal += current_normal;
-                ok = true;
-            }
-            if !ok {
-                normals.insert(positions[positions.len() - i], current_normal);
-            }
-        }
+        mesh.add_triangle(&positions[0..3]);
         index += 3;
     }
 }
 
 
 pub fn get_vertices(voxels: &Vec<Vec<Vec<bool>>>, voxel_size: f32) -> Vec<Vertex> {
-    let mut positions = Vec::new();
-    let mut normals = HashMap::new();
     let mut mesh = Mesh::new();
     let (x_size, y_size, z_size) = (voxels.len(), voxels[0].len(), voxels[0][0].len());
     for x in 0..(x_size - 1) {
         for y in 0..(y_size - 1) {
             for z in 0..(z_size - 1) {
-                process_cube(&voxels, x, y, z, &mut positions, &mut normals, &mut mesh);
+                process_cube(&voxels, x, y, z, &mut mesh);
             }
         }
     }
-
-    let mut shape = Vec::new();
-    for (i, position) in positions.iter().enumerate() {
-        let mut normal = normals.get_mut(position).unwrap();
-        normalize(normal);
-        let tex_coords = if i % 3 == 0 {[0.0, 0.0]} else if i % 3 == 1 {[0.0, 1.0]} else {[1.0, 1.0]};
-        shape.push(Vertex{
-            position: [(position.x as f32) * voxel_size / 2.0, (position.z as f32) * voxel_size / 2.0, (position.y as f32) * voxel_size / 2.0],
-            normal: [normal.x, normal.y, normal.z],
-            tex_coords: tex_coords
-        });
-    }
-    shape
+    mesh.get_vertices(voxel_size)
 }

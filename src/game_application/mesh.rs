@@ -10,7 +10,7 @@ type Point = Point3<usize>;
 
 #[derive(Eq, Hash, Copy, Clone)]
 struct Triangle {
-    points: [Point; 3]
+    pub points: [Point; 3]
 }
 
 
@@ -77,7 +77,8 @@ impl PartialEq for Edge {
 
 pub struct Mesh {
     edge_neighbors: HashMap<Edge, Vec<Triangle>>,
-    point_neighbors: HashMap<Point, Vec<Triangle>>
+    point_neighbors: HashMap<Point, Vec<Triangle>>,
+    triangles: HashSet<Triangle>
 }
 
 
@@ -85,8 +86,18 @@ impl Mesh {
     pub fn new() -> Mesh {
         Mesh {
             edge_neighbors: HashMap::new(),
-            point_neighbors: HashMap::new()
+            point_neighbors: HashMap::new(),
+            triangles: HashSet::new()
         }
+    }
+
+    fn get_point_normal(&self, point: &Point) -> Vector3<f32> {
+        let mut normal = Vector3::new(0.0, 0.0, 0.0);
+        for triangle in &self.point_neighbors[point] {
+            normal += triangle.get_normal();
+        }
+        normalize(&mut normal);
+        normal
     }
 
     pub fn add_triangle(&mut self, points: &[Point]) {
@@ -106,10 +117,22 @@ impl Mesh {
             }
             self.edge_neighbors.get_mut(&edge).unwrap().push(new_triangle);
         }
+        // Добавляем в треугольники
+        self.triangles.insert(new_triangle);
     }
 
-    pub fn get_vertices(&self) -> Vec<Vertex> {
-        let mut result = Vec::new();
-        result
+    pub fn get_vertices(&self, voxel_size: f32) -> Vec<Vertex> {
+        let mut shape = Vec::new();
+        let mut normals = HashMap::new();
+        for (point, triangles) in self.point_neighbors.iter() {
+            normals.insert(point, self.get_point_normal(point));
+        }
+        for triangle in self.triangles.iter() {
+            for (i, point) in triangle.points.iter().enumerate() {
+                let tex_coords = if i % 3 == 0 {[0.0, 0.0]} else if i % 3 == 1 {[0.0, 1.0]} else {[1.0, 1.0]};
+                shape.push(Vertex::new(point, &normals[point], &tex_coords, voxel_size));
+            }
+        }
+        shape
     }
 }
