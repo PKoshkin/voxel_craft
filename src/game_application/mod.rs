@@ -17,6 +17,9 @@ mod diamond_square;
 mod geometry;
 mod mesh;
 
+use game_application::draw_params::DrawParams;
+use game_application::cgmath::Point3;
+
 
 pub struct GameApplication<'time> {
     directory: &'time str
@@ -41,8 +44,13 @@ impl<'time> GameApplication<'time> {
         false
     }
 
+    fn get_draw_params(&mut self, model: &mut Model, view: &mut View) -> DrawParams {
+        // Вынимает DrawParams из model и view
+        model.get_draw_params(view.camera.position)
+    }
+
     pub fn start_loop(&mut self) {
-        let camera_position = (0.0, 0.0, 0.0);
+        let camera_position = Point3::new(0.0, 0.0, 0.0);
         let mut events_loop = glutin::EventsLoop::new();
         let mut view = View::new(&events_loop, self.directory, camera_position);
         let mut model = Model::new(camera_position);
@@ -56,7 +64,7 @@ impl<'time> GameApplication<'time> {
                 }
             });
             view.camera.update();
-            let draw_params = model.get_draw_params((view.camera.position.x, view.camera.position.y, view.camera.position.z));
+            let draw_params = self.get_draw_params(&mut model, &mut view);
             view.draw(draw_params);
         }
     }

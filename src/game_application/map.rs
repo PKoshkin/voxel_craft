@@ -1,19 +1,20 @@
 use game_application::vertex::Vertex;
 use game_application::marching_cubes::get_vertices;
 use game_application::diamond_square::generate_hight_map;
+use game_application::cgmath::Point3;
 
 
 pub struct Map {
     voxel_size: f32,
     map_size: usize,
     voxels: Vec<Vec<Vec<bool>>>,
-    position: (f32, f32, f32),
+    camera_position: Point3<f32>,
     vertices: Vec<Vertex>
 }
 
 
 impl Map {
-    pub fn new(voxel_size: f32, map_size: usize, camera_position: (f32, f32, f32)) -> Map {
+    pub fn new(voxel_size: f32, map_size: usize, camera_position: Point3<f32>) -> Map {
         let mut voxels = Vec::new();
         for x in 0..map_size {
             voxels.push(Vec::new());
@@ -28,7 +29,7 @@ impl Map {
             voxel_size: voxel_size,
             map_size: map_size,
             voxels: voxels,
-            position: camera_position,
+            camera_position: camera_position,
             vertices: Vec::new()
         }
     }
@@ -44,17 +45,16 @@ impl Map {
         }
     }
 
-
-    fn need_to_redraw(&self, position: (f32, f32, f32)) -> bool {
+    fn need_to_redraw(&self, camera_position: Point3<f32>) -> bool {
         self.vertices.len() == 0
     }
 
-    pub fn get_vertices(&mut self, camera_position: (f32, f32, f32)) -> Vec<Vertex> {
+    pub fn get_vertices(&mut self, camera_position: Point3<f32>) -> Vec<Vertex> {
         if self.need_to_redraw(camera_position) {
             self.build_voxels();
             self.vertices = get_vertices(&self.voxels, self.voxel_size);
         } 
-        self.position = camera_position;
+        self.camera_position = camera_position;
         return self.vertices.clone();
     }
 }

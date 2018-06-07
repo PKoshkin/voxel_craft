@@ -2,6 +2,7 @@ use glium::{self, Surface};
 use game_application::glutin;
 use game_application::draw_params::DrawParams;
 use game_application::camera::Camera;
+use game_application::cgmath::Point3;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -58,7 +59,7 @@ fn init_textures(display: &glium::Display) -> (glium::texture::SrgbTexture2d, gl
 
 
 impl<'time> View<'time> {
-    pub fn new(events_loop: &glutin::EventsLoop, directory: &'time str, camera_position: (f32, f32, f32)) -> View<'time>  {
+    pub fn new(events_loop: &glutin::EventsLoop, directory: &'time str, camera_position: Point3<f32>) -> View<'time>  {
         let window = glutin::WindowBuilder::new().with_decorations(false).with_fullscreen(Some(events_loop.get_primary_monitor()));
         let context = glutin::ContextBuilder::new().with_depth_buffer(24);
         let display = glium::Display::new(window, context, &events_loop).unwrap();
@@ -69,7 +70,7 @@ impl<'time> View<'time> {
         // camera init
         let (width, height) = display.get_framebuffer_dimensions();
         let aspect_ratio = width as f32 / height as f32;
-        let camera = Camera::new(aspect_ratio, camera_position, (0.0, 0.0, 1.0));
+        let camera = Camera::new(aspect_ratio, camera_position);
         View{
             camera: camera,
             directory: directory,
@@ -78,7 +79,6 @@ impl<'time> View<'time> {
             normal_map: normal_map
         }
     }
-
 
     pub fn draw(&self, draw_params: DrawParams) {
         //let program = init_points_program(&self.display, &self.directory);
@@ -117,5 +117,9 @@ impl<'time> View<'time> {
                     &uniform!{model: model, view: view, perspective: perspective, diffuse_tex: &self.texture, normal_tex: &self.normal_map, u_light: light},
                     &params).unwrap();
         target.finish().unwrap();
+    }
+
+    pub fn handle_event(&mut self, event: &glutin::WindowEvent) {
+        // Обрабытывает изменения интерфейса
     }
 }

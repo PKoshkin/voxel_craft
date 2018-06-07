@@ -38,7 +38,7 @@ pub fn generate_hight_map(size: usize) -> Vec<Vec<usize>> {
             x += square_size;
         }
 
-        // diamond step
+        // diamond step part 1
         x = middle;
         while x < size - middle {
             y = 0;
@@ -60,6 +60,7 @@ pub fn generate_hight_map(size: usize) -> Vec<Vec<usize>> {
             x += square_size;
         }
 
+        // diamond step part 2
         y = middle;
         while y < size - middle {
             x = 0;

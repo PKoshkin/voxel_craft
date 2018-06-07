@@ -29,11 +29,11 @@ pub struct Camera {
 
 
 impl Camera {
-    pub fn new(aspect_ratio: f32, position: (f32, f32, f32), direction: (f32, f32, f32)) -> Camera {
+    pub fn new(aspect_ratio: f32, position: Point3<f32>) -> Camera {
         Camera {
-            position: Point3::new(position.0, position.1, position.2),
+            position: position,
             aspect_ratio: aspect_ratio,
-            forward_direction: Vector3::new(direction.0, direction.1, direction.2),
+            forward_direction: Vector3::new(0.0, 0.0, 1.0),
             up_direction: Vector3::new(0.0, 1.0, 0.0),
 
             cursor_position: (0.0, 0.0),
